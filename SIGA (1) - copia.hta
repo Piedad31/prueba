@@ -1483,345 +1483,6 @@ function mostrarSeccion(seccion) {
     for (var i = 0; i < bars.length; i++) bars[i].innerHTML = texto;
   }
   setInterval(actualizarFechaHora, 1000);
-  // Buscar caso flexible
-function mostrarBuscarPaso(tipo) {
-  var botones = ["btn-buscar-anio","btn-buscar-caso2","btn-buscar-subcaso2"];
-  for (var i=0; i<botones.length; i++) {
-    document.getElementById(botones[i]).classList.remove("selected");
-  }
-  var formularios = ["form-buscar-anio","form-buscar-caso2","form-buscar-subcaso2"];
-  for (var i=0; i<formularios.length; i++) {
-    document.getElementById(formularios[i]).style.display="none";
-  }
-  if(tipo==="anio") {
-    document.getElementById("btn-buscar-anio").classList.add("selected");
-    document.getElementById("form-buscar-anio").style.display="block";
-    autoSeleccionarAnioActual("buscar-anio-flex-input", buscarPorAnio);
-  } else if(tipo==="caso") {
-    document.getElementById("btn-buscar-caso2").classList.add("selected");
-    document.getElementById("form-buscar-caso2").style.display="block";
-    autoSeleccionarAnioActual("buscar-anio-caso-input", llenarCasosBuscarCaso);
-  } else if(tipo==="subcaso") {
-    document.getElementById("btn-buscar-subcaso2").classList.add("selected");
-    document.getElementById("form-buscar-subcaso2").style.display="block";
-    autoSeleccionarAnioActual("buscar-anio-subcaso-input", llenarCasosBuscarSubcaso);
-  }
-}
-  function llenarAniosBuscar(idSelect) {
-    var select = document.getElementById(idSelect);
-    var anios = [];
-    try {
-      var carpetaEnum = new Enumerator(fso.GetFolder(desktop).SubFolders);
-      for (; !carpetaEnum.atEnd(); carpetaEnum.moveNext()) {
-        var nombre = carpetaEnum.item().Name;
-        if (nombre.match(/^Año \d{4}$/)) anios.push(nombre.replace("Año ",""));
-      }
-    } catch(e) {}
-    anios.sort();
-    for (var i=0; i<anios.length; i++) {
-      var opt = document.createElement("option");
-      opt.value = anios[i];
-      opt.text = anios[i];
-    }
-  }
-
-    function buscarPorAnio(pagina) {
-    var anio = document.getElementById("buscar-anio-flex-input").value;
-    var filtro = document.getElementById("filtro-buscar-caso-anio").value.trim().toLowerCase();
-    var div = document.getElementById("lista-buscar-caso-anio");
-    div.innerHTML = "";
-    if (!anio) {
-      div.innerHTML = "<span style='color:#b00020;'>Seleccione un año.</span>";
-      return;
-    }
-    var ruta = desktop + "\\Año " + anio;
-    if (!fso.FolderExists(ruta)) {
-      div.innerHTML = "<span style='color:#b00020;'>El año seleccionado no existe.</span>";
-      return;
-    }
-    var casos = [];
-    try {
-      var casosEnum = new Enumerator(fso.GetFolder(ruta).SubFolders);
-      for (; !casosEnum.atEnd(); casosEnum.moveNext()) {
-        var nombre = casosEnum.item().Name;
-        if (filtro === "" || nombre.toLowerCase().indexOf(filtro) !== -1) casos.push(nombre);
-      }
-    } catch(e) {}
-
-    // Paginación
-    casosFiltradosAnio = casos;
-    paginaActualCasosAnio = pagina || 1;
-    var totalPaginas = Math.ceil(casosFiltradosAnio.length / casosPorPagina);
-    if (paginaActualCasosAnio > totalPaginas) paginaActualCasosAnio = totalPaginas;
-    if (paginaActualCasosAnio < 1) paginaActualCasosAnio = 1;
-    var inicio = (paginaActualCasosAnio - 1) * casosPorPagina;
-    var fin = inicio + casosPorPagina;
-    var casosPagina = casosFiltradosAnio.slice(inicio, fin);
-
-    if (casosFiltradosAnio.length === 0) {
-      div.innerHTML = "<span style='color:#888;'>No hay casos en este año.</span>";
-      return;
-    }
-    var html = "<div style='font-weight:600;color:#17406a;'>Casos en año " + anio + ":</div>";
-    html += "<ul style='padding-left:16px;'>";
-    for (var i = 0; i < casosPagina.length; i++) {
-      var c = casosPagina[i];
-      html += "<li style='margin-bottom:6px;'><b>" + c + "</b> <button class='boton' style='padding:4px 14px;font-size:.96em;' onclick='abrirRuta(\"" +
-        (ruta + "\\" + c).replace(/\\/g, '\\\\') +
-        "\")'>Abrir carpeta</button></li>";
-    }
-    html += "</ul>";
-
-    // Controles de paginación
-    if (totalPaginas > 1) {
-      html += "<div style='text-align:center;margin:10px 0;'>";
-      html += "<button class='boton' style='padding:2px 10px;margin-right:8px;' onclick='cambiarPaginaCasosAnio(-1)' " + (paginaActualCasosAnio == 1 ? "disabled" : "") + ">Anterior</button>";
-      html += "<span style='margin:0 12px;'>Página " + paginaActualCasosAnio + " de " + totalPaginas + "</span>";
-      html += "<button class='boton' style='padding:2px 10px;margin-left:8px;' onclick='cambiarPaginaCasosAnio(1)' " + (paginaActualCasosAnio == totalPaginas ? "disabled" : "") + ">Siguiente</button>";
-      html += "</div>";
-    }
-    div.innerHTML = html;
-  }
-  function cambiarPaginaCasosAnio(direccion) {
-    buscarPorAnio(paginaActualCasosAnio + direccion);
-  }
-  document.getElementById("filtro-buscar-caso-anio").onkeyup = function() {
-    buscarPorAnio(1);
-  };
-
-  // ---- PAGINACIÓN POR CASO (ya la tienes, solo asegúrate que el filtro reinicie página) ----
-  document.getElementById("filtro-buscar-caso-caso").onkeyup = function() {
-    buscarPorCaso(1);
-  };
-
-
-  function llenarCasosBuscarCaso() {
-    var anio = document.getElementById("buscar-anio-caso-input").value;
-    var select = document.getElementById("buscar-caso-caso");
-    select.innerHTML = "";
-    if (!anio) return;
-    var ruta = desktop + "\\Año " + anio;
-    if (!fso.FolderExists(ruta)) return;
-    var casos = [];
-    try {
-      var casosEnum = new Enumerator(fso.GetFolder(ruta).SubFolders);
-      for (; !casosEnum.atEnd(); casosEnum.moveNext()) {
-        casos.push(casosEnum.item().Name);
-      }
-    } catch(e) {}
-    casos.sort();
-    for (var i=0; i<casos.length; i++) {
-      var opt = document.createElement("option");
-      opt.value = casos[i];
-      opt.text = casos[i];
-      select.appendChild(opt);
-    }
-    buscarPorCaso();
-  }
-  function buscarPorCaso(pagina) {
-  var anio = document.getElementById("buscar-anio-caso-input").value;
-  var caso = document.getElementById("buscar-caso-caso").value;
-  var filtro = document.getElementById("filtro-buscar-caso-caso").value.trim().toLowerCase();
-  var div = document.getElementById("lista-buscar-caso-caso");
-  div.innerHTML = "";
-
-  if (!anio || !caso) {
-    div.innerHTML = "<span style='color:#b00020;'>Seleccione año y caso.</span>";
-    return;
-  }
-
-  var ruta = desktop + "\\Año " + anio + "\\" + caso;
-  if (!fso.FolderExists(ruta)) {
-    div.innerHTML = "<span style='color:#b00020;'>El caso seleccionado no existe.</span>";
-    return;
-  }
-
-  // Obtener subcasos filtrados y archivos normalmente
-  var subcasos = [];
-  try {
-    var subEnum = new Enumerator(fso.GetFolder(ruta).SubFolders);
-    for (; !subEnum.atEnd(); subEnum.moveNext()) {
-      var nombre = subEnum.item().Name;
-      if (filtro == "" || nombre.toLowerCase().indexOf(filtro) !== -1) subcasos.push(nombre);
-    }
-  } catch(e) {}
-
-  // Guardar el resultado filtrado en variable global para paginación
-  subcasosFiltrados = subcasos;
-
-  // Paginación
-  paginaActualSubcasos = pagina || 1;
-  var totalPaginas = Math.ceil(subcasosFiltrados.length / subcasosPorPagina);
-  if (paginaActualSubcasos > totalPaginas) paginaActualSubcasos = totalPaginas;
-  if (paginaActualSubcasos < 1) paginaActualSubcasos = 1;
-  var inicio = (paginaActualSubcasos - 1) * subcasosPorPagina;
-  var fin = inicio + subcasosPorPagina;
-  var subcasosPagina = subcasosFiltrados.slice(inicio, fin);
-
-  var archivos = [];
-  try {
-    var filesEnum = new Enumerator(fso.GetFolder(ruta).Files);
-    for (; !filesEnum.atEnd(); filesEnum.moveNext()) {
-      var nombre = filesEnum.item().Name;
-      if (filtro == "" || nombre.toLowerCase().indexOf(filtro) !== -1) archivos.push(nombre);
-    }
-  } catch(e) {}
-
-  var html = "";
-  if (subcasosFiltrados.length > 0) {
-    html += "<div style='font-weight:600;color:#17406a;'>Subcasos:</div><ul style='padding-left:16px;'>";
-    for (var i = 0; i < subcasosPagina.length; i++) {
-      var sub = subcasosPagina[i];
-      html += "<li style='margin-bottom:6px;'><b>" + sub + "</b> <button class='boton' style='padding:4px 14px;font-size:.96em;' onclick='abrirRuta(\"" + ruta + "\\" + sub + "\")'>Abrir carpeta</button></li>";
-    }
-    html += "</ul>";
-
-    // Controles de paginación
-    if (totalPaginas > 1) {
-      html += "<div style='text-align:center;margin:10px 0;'>";
-      html += "<button class='boton' style='padding:2px 10px;margin-right:8px;' onclick='cambiarPaginaSubcasos(-1)' " + (paginaActualSubcasos == 1 ? "disabled" : "") + ">Anterior</button>";
-      html += "<span style='margin:0 12px;'>Página " + paginaActualSubcasos + " de " + totalPaginas + "</span>";
-      html += "<button class='boton' style='padding:2px 10px;margin-left:8px;' onclick='cambiarPaginaSubcasos(1)' " + (paginaActualSubcasos == totalPaginas ? "disabled" : "") + ">Siguiente</button>";
-      html += "</div>";
-    }
-  }
-
-  if (archivos.length > 0) {
-    html += "<div style='font-weight:600;color:#205085;'>Archivos en el caso:</div><ul style='padding-left:16px;'>";
-    for (var i = 0; i < archivos.length; i++) {
-      var arch = archivos[i];
-      html += "<li style='margin-bottom:6px;'>" + arch + " <button class='boton' style='padding:4px 14px;font-size:.96em;' onclick='abrirRuta(\"" + ruta + "\")'>Abrir carpeta</button></li>";
-    }
-    html += "</ul>";
-  }
-  if (html === "") html = "<span style='color:#888;'>No hay subcasos ni archivos en este caso.</span>";
-  div.innerHTML = html;
-}
-document.getElementById("filtro-buscar-caso-caso").onkeyup = function() {
-  buscarPorCaso(1);
-};
-
-function cambiarPaginaSubcasos(direccion) {
-  buscarPorCaso(paginaActualSubcasos + direccion);
-}
-
-function llenarCasosBuscarSubcaso() {
-    var anio = document.getElementById("buscar-anio-subcaso-input").value;
-    var select = document.getElementById("buscar-caso-subcaso");
-    select.innerHTML = "";
-    if (!anio) return;
-    var ruta = desktop + "\\Año " + anio;
-    if (!fso.FolderExists(ruta)) return;
-    var casos = [];
-    try {
-      var casosEnum = new Enumerator(fso.GetFolder(ruta).SubFolders);
-      for (; !casosEnum.atEnd(); casosEnum.moveNext()) {
-        casos.push(casosEnum.item().Name);
-      }
-    } catch(e) {}
-    casos.sort();
-    for (var i=0; i<casos.length; i++) {
-      var opt = document.createElement("option");
-      opt.value = casos[i];
-      opt.text = casos[i];
-      select.appendChild(opt);
-    }
-    llenarSubcasosBuscarSubcaso();
-  }
-
-function llenarSubcasosBuscarSubcaso() {
-  var anio = document.getElementById("buscar-anio-subcaso-input").value;
-  var caso = document.getElementById("buscar-caso-subcaso").value;
-  var select = document.getElementById("buscar-subcaso-subcaso");
-  select.innerHTML = "";
-  if (!anio || !caso) return;
-  var ruta = desktop + "\\Año " + anio + "\\" + caso;
-  if (!fso.FolderExists(ruta)) return;
-  var subcasos = [];
-  try {
-    var subEnum = new Enumerator(fso.GetFolder(ruta).SubFolders);
-    for (; !subEnum.atEnd(); subEnum.moveNext()) {
-      subcasos.push(subEnum.item().Name);
-    }
-  } catch(e) {}
-  subcasos.sort();
-  for (var i=0; i<subcasos.length; i++) {
-    var opt = document.createElement("option");
-    opt.value = subcasos[i];
-    opt.text = subcasos[i];
-    select.appendChild(opt);
-  }
-  buscarPorSubcaso();
-}
-  function buscarPorSubcaso(pagina) {
-    var anio = document.getElementById("buscar-anio-subcaso-input").value;
-    var caso = document.getElementById("buscar-caso-subcaso").value;
-    var subcaso = document.getElementById("buscar-subcaso-subcaso").value;
-    var filtro = document.getElementById("filtro-buscar-caso-subcaso").value.trim().toLowerCase();
-    var div = document.getElementById("lista-buscar-caso-subcaso");
-    div.innerHTML = "";
-    if (!anio || !caso || !subcaso) {
-      div.innerHTML = "<span style='color:#b00020;'>Seleccione año, caso y subcaso.</span>";
-      return;
-    }
-    var ruta = desktop + "\\Año " + anio + "\\" + caso + "\\" + subcaso;
-    if (!fso.FolderExists(ruta)) {
-      div.innerHTML = "<span style='color:#b00020;'>El subcaso seleccionado no existe.</span>";
-      return;
-    }
-    var archivos = [];
-    try {
-      var filesEnum = new Enumerator(fso.GetFolder(ruta).Files);
-      for (; !filesEnum.atEnd(); filesEnum.moveNext()) {
-        var nombre = filesEnum.item().Name;
-        if (filtro === "" || nombre.toLowerCase().indexOf(filtro) !== -1) archivos.push(nombre);
-      }
-    } catch(e) {}
-
-    // Paginación
-    archivosFiltradosSubcaso = archivos;
-    paginaActualArchivosSubcaso = pagina || 1;
-    var totalPaginas = Math.ceil(archivosFiltradosSubcaso.length / archivosPorPagina);
-    if (paginaActualArchivosSubcaso > totalPaginas) paginaActualArchivosSubcaso = totalPaginas;
-    if (paginaActualArchivosSubcaso < 1) paginaActualArchivosSubcaso = 1;
-    var inicio = (paginaActualArchivosSubcaso - 1) * archivosPorPagina;
-    var fin = inicio + archivosPorPagina;
-    var archivosPagina = archivosFiltradosSubcaso.slice(inicio, fin);
-
-    var html = "";
-if (archivosFiltradosSubcaso.length === 0) {
-  div.innerHTML = "<span style='color:#888;'>No hay archivos en este subcaso.</span>";
-  return;
-}
-html = "<div style='font-weight:600;color:#205085;'>Archivos en el subcaso:</div><ul style='padding-left:16px;'>";
-for (var i = 0; i < archivosPagina.length; i++) {
-  var arch = archivosPagina[i];
-  var rutaArchivo = ruta + "\\" + arch;
-  if (arch.match(/\.(docx?|DOCX?)$/)) {
-    html += "<li style='margin-bottom:6px;'>" + arch +
-      " <button class='boton' style='padding:4px 14px;font-size:.96em;' onclick='abrirWord(\"" + rutaArchivo.replace(/\\/g, '\\\\') + "\")'>Abrir Word</button></li>";
-  } else {
-    html += "<li style='margin-bottom:6px;'>" + arch + "</li>";
-  }
-}
-html += "</ul>";
-
-    // Controles de paginación
-    if (totalPaginas > 1) {
-      html += "<div style='text-align:center;margin:10px 0;'>";
-      html += "<button class='boton' style='padding:2px 10px;margin-right:8px;' onclick='cambiarPaginaArchivosSubcaso(-1)' " + (paginaActualArchivosSubcaso == 1 ? "disabled" : "") + ">Anterior</button>";
-      html += "<span style='margin:0 12px;'>Página " + paginaActualArchivosSubcaso + " de " + totalPaginas + "</span>";
-      html += "<button class='boton' style='padding:2px 10px;margin-left:8px;' onclick='cambiarPaginaArchivosSubcaso(1)' " + (paginaActualArchivosSubcaso == totalPaginas ? "disabled" : "") + ">Siguiente</button>";
-      html += "</div>";
-    }
-    div.innerHTML = html;
-  }
-  function cambiarPaginaArchivosSubcaso(direccion) {
-    buscarPorSubcaso(paginaActualArchivosSubcaso + direccion);
-  }
-  document.getElementById("filtro-buscar-caso-subcaso").onkeyup = function() {
-    buscarPorSubcaso(1);
-  };
 
 function abrirWord(rutaArchivo) {
   if (fso.FileExists(rutaArchivo)) {
@@ -3248,6 +2909,40 @@ function filtrarCasosUI() {
     rows[i].style.display = (!filtro || txt.indexOf(filtro)!==-1) ? "" : "none";
   }
 }
+/**
+ * Muestra el(los) caso(s) encontrado(s) en una tabla simple.
+ * @param {Array} casosArray - Array con el/los nombre(s) del caso encontrado.
+ * @param {string} rutaBase - Ruta base donde se encuentra(n) el(los) caso(s).
+ * @param {string} idDiv - ID del div donde se mostrará la tabla.
+ */
+function mostrarTablaCasos(casosArray, rutaBase, idDiv) {
+    var div = document.getElementById(idDiv);
+    if (!div) return;
+    if (!casosArray || casosArray.length === 0) {
+        div.innerHTML = "<span style='color:#b00020;'>No se encontró ningún caso.</span>";
+        return;
+    }
+
+    var html = "<table style='width:100%;border-collapse:collapse;margin-top:10px;'>";
+    html += "<thead><tr style='background:#eaf0f7;'>";
+    html += "<th style='text-align:left;padding:7px 8px;'>Nombre del Caso</th>";
+    html += "<th style='text-align:left;padding:7px 8px;'>Acción</th>";
+    html += "</tr></thead><tbody>";
+
+    for (var i = 0; i < casosArray.length; i++) {
+        var nombre = casosArray[i];
+        html += "<tr>";
+        html += "<td style='padding:7px 8px;'><b>" + nombre + "</b></td>";
+        html += "<td style='padding:7px 8px;'>" +
+            "<button class='boton' style='padding:4px 14px;font-size:.96em;' onclick='abrirRuta(\"" +
+            (rutaBase + "\\" + nombre).replace(/\\/g, '\\\\') +
+            "\")'>Abrir carpeta</button></td>";
+        html += "</tr>";
+    }
+
+    html += "</tbody></table>";
+    div.innerHTML = html;
+}
 function mostrarPanelDetalles(idx) {
   var caso = demoCasos[idx];
   var panel = document.getElementById('panel-detalles-caso');
@@ -3322,9 +3017,6 @@ function pad2(n) { return n<10 ? '0'+n : n; }
       alert("La carpeta no existe.");
     }
   }
-  // Inicializaciones
-  mostrarCrearPaso('anio');
-  mostrarBuscarPaso('anio');
 </script>
 </body>
 </html>
