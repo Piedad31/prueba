@@ -837,7 +837,7 @@
     <button onclick="mostrarSeccion('crear-caso')" id="btn-crear-caso">Crear año/caso/subcaso</button>
     <button id="btn-crear-oficios" class="sidebar-btn" onclick="mostrarSeccion('crear-oficios')">Crear oficios</button>
     <button onclick="mostrarSeccion('buscar-caso')" id="btn-buscar-caso">Buscar caso</button>
-    <button onclick="mostrarSeccionBusquedaAvanzada()" id="btn-busqueda-avanzada">Búsqueda avanzada</button>
+    <button onclick="mostrarSeccionBusquedaAvanzada()" id="btn-busqueda-avanzada">Espacio para nueva sección</button>
     <div class="spacer"></div>
   </nav>
   <div style="flex:1;display:flex;flex-direction:column;min-width:0;">
@@ -1156,8 +1156,9 @@
         <div id="detalle-cuerpo" style="font-size:0.97em; color:#205085; margin-bottom:12px;"></div>
         <div id="detalle-archivos"></div>
         <div style="margin-top:16px;display:flex;gap:8px;">
-          <button id="detalle-abrir-carpeta" class="boton boton-pequeno" style="flex:1;display:flex;align-items:center;gap:6px;"><span>📂</span> Abrir carpeta</button>
-          <button id="detalle-enviar-correo" class="boton boton-pequeno" style="flex:1;display:flex;align-items:center;gap:6px;"><span>✉️</span> Enviar correo</button>
+  <button id="detalle-abrir-carpeta" class="boton boton-pequeno" style="flex:1;display:flex;align-items:center;gap:6px;"><span>📂</span> Abrir carpeta</button>
+  <button id="detalle-salir-caso" class="boton boton-pequeno" style="flex:1;display:flex;align-items:center;gap:6px;"><span>🚪</span> Salir</button>
+</div>
         </div>
       </div>
     </div>
@@ -1592,203 +1593,6 @@ function getBuscarAnioCaso() {
 }
 function getBuscarAnioSubcaso() {
   return document.getElementById("buscar-anio-subcaso-input").value;
-}
-
-
-//Búsqueda avanzada
-function mostrarSeccionBusquedaAvanzada() {
-  mostrarSeccion('busqueda-avanzada');
-}
-
-function buscarAvanzado() {
-  var palabra = document.getElementById("input-busqueda-avanzada").value.trim().toLowerCase();
-  var div = document.getElementById("resultados-busqueda-avanzada");
-  div.innerHTML = "";
-  if (!palabra) {
-    div.innerHTML = "<span style='color:#b00020;'>Ingrese un nombre o palabra a buscar.</span>";
-    resultadosBusquedaAvanzada = [];
-    paginaActualBusquedaAvanzada = 1;
-    return;
-  }
-  var resultados = [];
-  try {
-    var carpetaEnum = new Enumerator(fso.GetFolder(desktop).SubFolders);
-    for (; !carpetaEnum.atEnd(); carpetaEnum.moveNext()) {
-      var nombreAnio = carpetaEnum.item().Name;
-      if (!/^Año \d{4}$/.test(nombreAnio)) continue;
-      var rutaAnio = desktop + "\\" + nombreAnio;
-      // Buscar en archivos Word del año
-      try {
-        var filesEnum = new Enumerator(fso.GetFolder(rutaAnio).Files);
-        for (; !filesEnum.atEnd(); filesEnum.moveNext()) {
-          var fileName = filesEnum.item().Name;
-          if (fileName.match(/\.(docx?|DOCX?)$/) && fileName.toLowerCase().indexOf(palabra) !== -1) {
-            resultados.push({
-              anio: nombreAnio.replace("Año ",""),
-              caso: "",
-              subcaso: "",
-              word: fileName,
-              ruta: rutaAnio
-            });
-          }
-        }
-      } catch(e) {}
-      var casosEnum = new Enumerator(fso.GetFolder(rutaAnio).SubFolders);
-      for (; !casosEnum.atEnd(); casosEnum.moveNext()) {
-        var nombreCaso = casosEnum.item().Name;
-        var rutaCaso = rutaAnio + "\\" + nombreCaso;
-        // Buscar en archivos Word del caso
-        try {
-          var filesEnum = new Enumerator(fso.GetFolder(rutaCaso).Files);
-          for (; !filesEnum.atEnd(); filesEnum.moveNext()) {
-            var fileName = filesEnum.item().Name;
-            if (fileName.match(/\.(docx?|DOCX?)$/) && fileName.toLowerCase().indexOf(palabra) !== -1) {
-              resultados.push({
-                anio: nombreAnio.replace("Año ",""),
-                caso: nombreCaso,
-                subcaso: "",
-                word: fileName,
-                ruta: rutaCaso
-              });
-            }
-          }
-        } catch(e) {}
-        var subcasosEnum = new Enumerator(fso.GetFolder(rutaCaso).SubFolders);
-        for (; !subcasosEnum.atEnd(); subcasosEnum.moveNext()) {
-          var nombreSubcaso = subcasosEnum.item().Name;
-          var rutaSubcaso = rutaCaso + "\\" + nombreSubcaso;
-          // Buscar en archivos Word del subcaso
-          try {
-            var filesEnum = new Enumerator(fso.GetFolder(rutaSubcaso).Files);
-            for (; !filesEnum.atEnd(); filesEnum.moveNext()) {
-              var fileName = filesEnum.item().Name;
-              if (fileName.match(/\.(docx?|DOCX?)$/) && fileName.toLowerCase().indexOf(palabra) !== -1) {
-                resultados.push({
-                  anio: nombreAnio.replace("Año ",""),
-                  caso: nombreCaso,
-                  subcaso: nombreSubcaso,
-                  word: fileName,
-                  ruta: rutaSubcaso
-                });
-              }
-            }
-          } catch(e) {}
-          // Además, si el subcaso hace match por nombre
-          var matchSubcaso = nombreSubcaso.toLowerCase().indexOf(palabra) !== -1;
-          if (matchSubcaso) {
-            var wordCount = 0;
-            try {
-              var filesEnum = new Enumerator(fso.GetFolder(rutaSubcaso).Files);
-              for (; !filesEnum.atEnd(); filesEnum.moveNext()) {
-                var fileName = filesEnum.item().Name;
-                if (fileName.match(/\.(docx?|DOCX?)$/)) wordCount++;
-              }
-            } catch(e) {}
-            resultados.push({
-              anio: nombreAnio.replace("Año ",""),
-              caso: nombreCaso,
-              subcaso: nombreSubcaso,
-              word: "",
-              cantidadWords: wordCount,
-              ruta: rutaSubcaso
-            });
-          }
-        }
-        // Si el caso hace match
-        var matchCaso = nombreCaso.toLowerCase().indexOf(palabra) !== -1;
-        if (matchCaso) {
-          var wordCount = 0;
-          try {
-            var filesEnum = new Enumerator(fso.GetFolder(rutaCaso).Files);
-            for (; !filesEnum.atEnd(); filesEnum.moveNext()) {
-              var fileName = filesEnum.item().Name;
-              if (fileName.match(/\.(docx?|DOCX?)$/)) wordCount++;
-            }
-          } catch(e) {}
-          resultados.push({
-            anio: nombreAnio.replace("Año ",""),
-            caso: nombreCaso,
-            subcaso: "",
-            word: "",
-            cantidadWords: wordCount,
-            ruta: rutaCaso
-          });
-        }
-      }
-      // Si el año hace match
-      if (nombreAnio.toLowerCase().indexOf(palabra) !== -1) {
-        var wordCount = 0;
-        try {
-          var filesEnum = new Enumerator(fso.GetFolder(rutaAnio).Files);
-          for (; !filesEnum.atEnd(); filesEnum.moveNext()) {
-            var fileName = filesEnum.item().Name;
-            if (fileName.match(/\.(docx?|DOCX?)$/)) wordCount++;
-          }
-        } catch(e) {}
-        resultados.push({
-          anio: nombreAnio.replace("Año ",""),
-          caso: "",
-          subcaso: "",
-          word: "",
-          cantidadWords: wordCount,
-          ruta: rutaAnio
-        });
-      }
-    }
-  } catch(e) {
-    div.innerHTML = "<span style='color:#b00020;'>Error al buscar: " + e.message + "</span>";
-    resultadosBusquedaAvanzada = [];
-    paginaActualBusquedaAvanzada = 1;
-    return;
-  }
-  resultadosBusquedaAvanzada = resultados;
-  paginaActualBusquedaAvanzada = 1;
-  renderPaginaBusquedaAvanzada();
-  sincronizarTodo();
-}
-
-function renderPaginaBusquedaAvanzada() {
-  var div = document.getElementById("resultados-busqueda-avanzada");
-  var total = resultadosBusquedaAvanzada.length;
-  if (total === 0) {
-    div.innerHTML = "<span style='color:#888;'>No se encontraron resultados.</span>";
-    return;
-  }
-  var totalPaginas = Math.ceil(total / resultadosPorPaginaAvanzada);
-  if (paginaActualBusquedaAvanzada < 1) paginaActualBusquedaAvanzada = 1;
-  if (paginaActualBusquedaAvanzada > totalPaginas) paginaActualBusquedaAvanzada = totalPaginas;
-  var inicio = (paginaActualBusquedaAvanzada - 1) * resultadosPorPaginaAvanzada;
-  var fin = Math.min(inicio + resultadosPorPaginaAvanzada, total);
-  var pagina = resultadosBusquedaAvanzada.slice(inicio, fin);
-
-  var html = "<table style='width:100%;border-collapse:collapse;font-size:1em;'>";
-  html += "<tr style='background:#eaf0f7;font-weight:600;'><td>Año</td><td>Caso</td><td>Subcaso</td><td>Word</td><td style='text-align:center;'>#Words</td><td></td></tr>";
-  for (var i=0; i<pagina.length; i++) {
-    var r = pagina[i];
-    html += "<tr style='border-bottom:1px solid #e0e5ee;'>";
-    html += "<td>" + (r.anio||"") + "</td>";
-    html += "<td>" + (r.caso||"") + "</td>";
-    html += "<td>" + (r.subcaso||"") + "</td>";
-    html += "<td>" + (r.word||"") + "</td>";
-    html += "<td style='text-align:center;'>" + (typeof r.cantidadWords !== "undefined" ? r.cantidadWords : (r.word ? "1" : "")) + "</td>";
-    html += "<td><button class='boton' style='padding:4px 14px;font-size:.97em;' onclick='abrirRuta(\"" + r.ruta.replace(/\\/g, '\\\\') + "\")'>Abrir carpeta</button></td>";
-    html += "</tr>";
-  }
-  html += "</table>";
-  // Controles de paginación
-  if (totalPaginas > 1) {
-    html += "<div style='text-align:center;margin:12px 0 0 0;'>";
-    html += "<button class='boton' style='padding:2px 10px;margin-right:8px;' onclick='cambiarPaginaBusquedaAvanzada(-1)' " + (paginaActualBusquedaAvanzada === 1 ? "disabled" : "") + ">Anterior</button>";
-    html += "<span style='margin:0 12px;'>Página " + paginaActualBusquedaAvanzada + " de " + totalPaginas + "</span>";
-    html += "<button class='boton' style='padding:2px 10px;margin-left:8px;' onclick='cambiarPaginaBusquedaAvanzada(1)' " + (paginaActualBusquedaAvanzada === totalPaginas ? "disabled" : "") + ">Siguiente</button>";
-    html += "</div>";
-  }
-  div.innerHTML = html;
-}
-
-function cambiarPaginaBusquedaAvanzada(direccion) {
-  paginaActualBusquedaAvanzada += direccion;
-  renderPaginaBusquedaAvanzada();
 }
 
 //Funciones sección formato
@@ -2892,123 +2696,298 @@ function inicializarNotaCasoOficio() {
 }
 
 //Buscar casos
-var demoCasos = [
-  {anio:"2025", nombre:"Derechos de petición", subcasos:3, archivos:10, ultima:"24/06/2025 09:40", ruta:"C:\\Casos\\2025\\Derechos de petición"},
-  {anio:"2025", nombre:"Intervención ante juzgados", subcasos:1, archivos:4, ultima:"21/06/2025 14:28", ruta:"C:\\Casos\\2025\\Intervención ante juzgados"}
-];
+var resultadosBusqueda = [];
+var paginaActual = 1;
+var porPagina = 10;
+
+// Variables para paginación de archivos en panel lateral
+var archivosPaginaActual = 1;
+var archivosPorPagina = 5;
+var archivosMostrados = [];
+var rutaArchivosMostrados = [];
+
 function buscarCasoUI() {
-  // Aquí deberías consultar el FSO, pero para demo usamos demoCasos
-  mostrarTablaCasos(demoCasos);
-  filtrarCasosUI();
+  paginaActual = 1;
+  var anio = document.getElementById('input-buscar-anio').value.trim().toLowerCase();
+  var nombre = document.getElementById('input-buscar-nombre').value.trim().toLowerCase();
+  var shell = new ActiveXObject('WScript.Shell');
+  var fso = new ActiveXObject('Scripting.FileSystemObject');
+  var escritorio = shell.SpecialFolders('Desktop');
+
+  resultadosBusqueda = [];
+
+  var carpetasEscritorio = fso.GetFolder(escritorio).SubFolders;
+  for (var e = new Enumerator(carpetasEscritorio); !e.atEnd(); e.moveNext()) {
+    var carpetaAnio = e.item();
+    if (anio && carpetaAnio.Name.toLowerCase().indexOf(anio) === -1) continue;
+
+    var carpetasCasos = carpetaAnio.SubFolders;
+    for (var c = new Enumerator(carpetasCasos); !c.atEnd(); c.moveNext()) {
+      var carpetaCaso = c.item();
+      var casoNombre = carpetaCaso.Name;
+
+      var carpetasSubcasos = carpetaCaso.SubFolders;
+      var tieneSubcasos = false;
+
+      for (var s = new Enumerator(carpetasSubcasos); !s.atEnd(); s.moveNext()) {
+        var carpetaSubcaso = s.item();
+        var subcasoNombre = carpetaSubcaso.Name;
+        // Archivos Word en subcaso
+        var archivosArr = [];
+        var rutasArr = [];
+        var ultimoWord = null;
+        var archivosSub = carpetaSubcaso.Files;
+        for (var a = new Enumerator(archivosSub); !a.atEnd(); a.moveNext()) {
+          var archivo = a.item();
+          if (archivo.Name.match(/\.docx?$/i)) {
+            archivosArr.push(archivo.Name);
+            rutasArr.push(archivo.Path);
+            if (!ultimoWord || archivo.DateLastModified > ultimoWord.fecha) {
+              ultimoWord = { nombre: archivo.Name, fecha: archivo.DateLastModified, ruta: archivo.Path };
+            }
+          }
+        }
+        // Filtro: por nombre de caso, subcaso o archivo Word
+        var coincide = false;
+        if (!nombre) {
+          coincide = true;
+        } else {
+          if (casoNombre.toLowerCase().indexOf(nombre) !== -1) coincide = true;
+          if (subcasoNombre.toLowerCase().indexOf(nombre) !== -1) coincide = true;
+          for (var aa = 0; aa < archivosArr.length; aa++) {
+            if (archivosArr[aa].toLowerCase().indexOf(nombre) !== -1) coincide = true;
+          }
+        }
+        if (coincide) {
+          tieneSubcasos = true;
+          resultadosBusqueda.push({
+            anio: carpetaAnio.Name,
+            caso: casoNombre,
+            subcaso: subcasoNombre,
+            archivos: archivosArr,
+            archivosRutas: rutasArr,
+            ultimoWord: ultimoWord && ultimoWord.nombre ? ultimoWord.nombre : '-',
+            ruta: carpetaSubcaso.Path,
+            rutaUltimoWord: ultimoWord && ultimoWord.ruta ? ultimoWord.ruta : ''
+          });
+        }
+      }
+
+      // Si no tiene subcasos, mostrar el caso solo
+      if (!tieneSubcasos) {
+        var archivosArr = [];
+        var rutasArr = [];
+        var ultimoWord = null;
+        var archivosCaso = carpetaCaso.Files;
+        for (var a = new Enumerator(archivosCaso); !a.atEnd(); a.moveNext()) {
+          var archivo = a.item();
+          if (archivo.Name.match(/\.docx?$/i)) {
+            archivosArr.push(archivo.Name);
+            rutasArr.push(archivo.Path);
+            if (!ultimoWord || archivo.DateLastModified > ultimoWord.fecha) {
+              ultimoWord = { nombre: archivo.Name, fecha: archivo.DateLastModified, ruta: archivo.Path };
+            }
+          }
+        }
+        // Filtro: por nombre de caso o archivo Word
+        var coincide = false;
+        if (!nombre) {
+          coincide = true;
+        } else {
+          if (casoNombre.toLowerCase().indexOf(nombre) !== -1) coincide = true;
+          for (var aa = 0; aa < archivosArr.length; aa++) {
+            if (archivosArr[aa].toLowerCase().indexOf(nombre) !== -1) coincide = true;
+          }
+        }
+        if (coincide) {
+          resultadosBusqueda.push({
+            anio: carpetaAnio.Name,
+            caso: casoNombre,
+            subcaso: '-',
+            archivos: archivosArr,
+            archivosRutas: rutasArr,
+            ultimoWord: ultimoWord && ultimoWord.nombre ? ultimoWord.nombre : '-',
+            ruta: carpetaCaso.Path,
+            rutaUltimoWord: ultimoWord && ultimoWord.ruta ? ultimoWord.ruta : ''
+          });
+        }
+      }
+    }
+  }
+  renderTablaCasos();
+  document.getElementById('panel-detalles-caso').style.display = 'none';
 }
+
 function filtrarCasosUI() {
-  var filtro = document.getElementById('input-buscar-nombre').value.trim().toLowerCase();
-  var rows = document.querySelectorAll("#tabla-casos tbody tr");
-  for (var i=0; i<rows.length; i++) {
-    var txt = rows[i].innerText.toLowerCase();
-    rows[i].style.display = (!filtro || txt.indexOf(filtro)!==-1) ? "" : "none";
+  paginaActual = 1;
+  var nombre = document.getElementById('input-buscar-nombre').value.trim().toLowerCase();
+  if (!nombre) {
+    renderTablaCasos();
+    return;
+  }
+  var filtrados = [];
+  for (var i = 0; i < resultadosBusqueda.length; i++) {
+    var caso = resultadosBusqueda[i];
+    var enCaso = caso.caso.toLowerCase().indexOf(nombre) !== -1;
+    var enSubcaso = caso.subcaso && caso.subcaso.toLowerCase().indexOf(nombre) !== -1;
+    var enWord = false;
+    for (var j = 0; j < caso.archivos.length; j++) {
+      if (caso.archivos[j].toLowerCase().indexOf(nombre) !== -1) {
+        enWord = true; break;
+      }
+    }
+    if (enCaso || enSubcaso || enWord) filtrados.push(caso);
+  }
+  renderTablaCasos(filtrados);
+  document.getElementById('panel-detalles-caso').style.display = 'none';
+}
+
+function renderTablaCasos(arr) {
+  if (!arr) arr = resultadosBusqueda;
+  var tbody = document.getElementById('tbody-casos');
+  tbody.innerHTML = '';
+
+  // Paginación
+  var totalRegistros = arr.length;
+  var totalPaginas = Math.ceil(totalRegistros / porPagina);
+  if (paginaActual > totalPaginas) paginaActual = totalPaginas;
+  if (paginaActual < 1) paginaActual = 1;
+  var inicio = (paginaActual - 1) * porPagina;
+  var fin = inicio + porPagina;
+  var dataPagina = arr.slice(inicio, fin);
+
+  for (var i = 0; i < dataPagina.length; i++) {
+    var caso = dataPagina[i];
+    var fila = document.createElement('tr');
+    fila.style.cursor = 'pointer';
+    fila.onclick = (function(c) {
+      return function() { mostrarDetallesCaso(c); };
+    })(caso);
+
+    var tdAnio = document.createElement('td'); tdAnio.innerText = caso.anio;
+    var tdNombre = document.createElement('td'); tdNombre.innerText = caso.caso;
+    var tdSubcaso = document.createElement('td'); tdSubcaso.innerText = caso.subcaso || '-';
+    var tdArchivos = document.createElement('td'); tdArchivos.innerText = caso.archivos.length ? caso.archivos.length : '-';
+    var tdUltimo = document.createElement('td'); tdUltimo.innerText = caso.ultimoWord;
+    var tdAccion = document.createElement('td');
+    tdAccion.innerHTML = '<button class="boton boton-pequeno" title="Ver detalles" onclick="event.stopPropagation();mostrarDetallesCasoDirecto(' + (inicio + i) + ');">🔎</button>';
+    fila.appendChild(tdAnio);
+    fila.appendChild(tdNombre);
+    fila.appendChild(tdSubcaso);
+    fila.appendChild(tdArchivos);
+    fila.appendChild(tdUltimo);
+    fila.appendChild(tdAccion);
+    tbody.appendChild(fila);
+  }
+
+  // Paginador
+  var paginador = document.getElementById('paginador-casos');
+  if (!paginador) {
+    paginador = document.createElement('div');
+    paginador.id = 'paginador-casos';
+    paginador.style = 'margin:12px 0 0 0; text-align:center;';
+    tbody.parentNode.parentNode.appendChild(paginador);
+  }
+  if (totalPaginas > 1) {
+    var html = '';
+    if (paginaActual > 1) {
+      html += '<button onclick="cambiarPaginaCasos(' + (paginaActual - 1) + ')" class="boton boton-pequeno" style="margin-right:6px;">&lt; Anterior</button>';
+    }
+    html += ' Página ' + paginaActual + ' de ' + totalPaginas + ' ';
+    if (paginaActual < totalPaginas) {
+      html += '<button onclick="cambiarPaginaCasos(' + (paginaActual + 1) + ')" class="boton boton-pequeno" style="margin-left:6px;">Siguiente &gt;</button>';
+    }
+    paginador.innerHTML = html;
+    paginador.style.display = 'block';
+  } else {
+    paginador.innerHTML = '';
+    paginador.style.display = 'none';
   }
 }
-/**
- * Muestra el(los) caso(s) encontrado(s) en una tabla simple.
- * @param {Array} casosArray - Array con el/los nombre(s) del caso encontrado.
- * @param {string} rutaBase - Ruta base donde se encuentra(n) el(los) caso(s).
- * @param {string} idDiv - ID del div donde se mostrará la tabla.
- */
-function mostrarTablaCasos(casosArray, rutaBase, idDiv) {
-    var div = document.getElementById(idDiv);
-    if (!div) return;
-    if (!casosArray || casosArray.length === 0) {
-        div.innerHTML = "<span style='color:#b00020;'>No se encontró ningún caso.</span>";
-        return;
-    }
 
-    var html = "<table style='width:100%;border-collapse:collapse;margin-top:10px;'>";
-    html += "<thead><tr style='background:#eaf0f7;'>";
-    html += "<th style='text-align:left;padding:7px 8px;'>Nombre del Caso</th>";
-    html += "<th style='text-align:left;padding:7px 8px;'>Acción</th>";
-    html += "</tr></thead><tbody>";
-
-    for (var i = 0; i < casosArray.length; i++) {
-        var nombre = casosArray[i];
-        html += "<tr>";
-        html += "<td style='padding:7px 8px;'><b>" + nombre + "</b></td>";
-        html += "<td style='padding:7px 8px;'>" +
-            "<button class='boton' style='padding:4px 14px;font-size:.96em;' onclick='abrirRuta(\"" +
-            (rutaBase + "\\" + nombre).replace(/\\/g, '\\\\') +
-            "\")'>Abrir carpeta</button></td>";
-        html += "</tr>";
-    }
-
-    html += "</tbody></table>";
-    div.innerHTML = html;
+function cambiarPaginaCasos(nueva) {
+  paginaActual = nueva;
+  renderTablaCasos();
+  document.getElementById('panel-detalles-caso').style.display = 'none';
 }
-function mostrarPanelDetalles(idx) {
-  var caso = demoCasos[idx];
-  var panel = document.getElementById('panel-detalles-caso');
-  document.getElementById('detalle-titulo').innerText = caso.nombre + " (" + caso.anio + ")";
-  document.getElementById('detalle-cuerpo').innerHTML =
-    "<b>Subcasos:</b> " + caso.subcasos + "<br>" +
-    "<b>Archivos Word:</b> " + caso.archivos + "<br>" +
-    "<b>Última modificación:</b> " + caso.ultima + "<br>" +
-    "<b>Ruta:</b> <span style='font-size:0.94em;'>" + caso.ruta + "</span>";
 
-  // Mostrar últimos archivos Word realmente encontrados en la carpeta
-  var archivosHTML = listarUltimosArchivosWord(caso.ruta, 5); // muestra los 5 más recientes
-  document.getElementById('detalle-archivos').innerHTML = archivosHTML;
+function mostrarDetallesCasoDirecto(indice) {
+  mostrarDetallesCaso(resultadosBusqueda[indice]);
+}
 
-  panel.style.display = "";
-  // Acciones rápidas:
-  document.getElementById('detalle-abrir-carpeta').onclick = function(){ abrirCarpetaCaso(caso.ruta); };
-  document.getElementById('detalle-enviar-correo').onclick = function() {
-    var mailto = 'mailto:?subject=' + encodeURIComponent("Documentos del caso: " + caso.nombre) +
-                 '&body=' + encodeURIComponent("Adjunto información sobre el caso \"" + caso.nombre + "\" (" + caso.anio + ").\nRuta: " + caso.ruta);
-    var shell = new ActiveXObject("WScript.Shell");
-    shell.Run(mailto, 1, false);
+function mostrarDetallesCaso(caso) {
+  archivosPaginaActual = 1;
+  archivosMostrados = caso.archivos;
+  rutaArchivosMostrados = caso.archivosRutas;
+
+  document.getElementById('detalle-titulo').innerText = 'Caso: ' + caso.caso + ' (' + caso.anio + ')';
+  document.getElementById('detalle-cuerpo').innerHTML = (caso.subcaso && caso.subcaso !== '-' ? '<b>Subcaso:</b> ' + caso.subcaso + '<br>' : '')
+    + '<b>Archivos:</b> ' + (caso.archivos.length ? caso.archivos.length : '0') + '<br>'
+    + '<b>Último Word:</b> ' + (caso.ultimoWord || '-') + '<br>'
+    + '<b>Ruta:</b> ' + caso.ruta;
+
+  renderArchivosPanel();
+
+  document.getElementById('panel-detalles-caso').style.display = 'block';
+
+  document.getElementById('detalle-abrir-carpeta').onclick = function() {
+    var shell = new ActiveXObject('WScript.Shell');
+    shell.Run('explorer.exe "' + caso.ruta + '"');
+  };
+  document.getElementById('detalle-salir-caso').onclick = function() {
+    document.getElementById('panel-detalles-caso').style.display = 'none';
   };
 }
 
-// Función auxiliar: devuelve una tabla HTML con los N archivos Word más recientes de la carpeta dada
-function listarUltimosArchivosWord(ruta, cuantos) {
-  try {
-    var fso = new ActiveXObject("Scripting.FileSystemObject");
-    if(!fso.FolderExists(ruta)) return "<i style='color:#b00020;'>No se encontró la carpeta.</i>";
-    var carpeta = fso.GetFolder(ruta);
-    var archivos = [];
-    var e = new Enumerator(carpeta.Files);
-    for (; !e.atEnd(); e.moveNext()) {
-      var archivo = e.item();
-      var nombre = archivo.Name.toLowerCase();
-      if (nombre.substr(nombre.length - 4) === ".doc" || nombre.substr(nombre.length - 5) === ".docx") {
-        archivos.push({
-          nombre: archivo.Name,
-          fecha: archivo.DateLastModified
-        });
+// PAGINACIÓN Y ARCHIVOS CLICABLES EN PANEL LATERAL
+function renderArchivosPanel() {
+  var total = archivosMostrados.length;
+  var totalPaginas = Math.ceil(total / archivosPorPagina);
+  if (archivosPaginaActual > totalPaginas) archivosPaginaActual = totalPaginas;
+  if (archivosPaginaActual < 1) archivosPaginaActual = 1;
+  var inicio = (archivosPaginaActual - 1) * archivosPorPagina;
+  var fin = inicio + archivosPorPagina;
+  var lista = archivosMostrados.slice(inicio, fin);
+  var rutas = rutaArchivosMostrados.slice(inicio, fin);
+
+  var htmlArchivos = '';
+  if (total) {
+    htmlArchivos += '<div style="margin-top:8px;"><b>Archivos Word encontrados:</b><ul style=\'margin-bottom:5px;\'>';
+    for (var i = 0; i < lista.length; i++) {
+      htmlArchivos += '<li><a href="#" style="text-decoration:underline;color:#205085;" onclick="abrirWordArchivo(\'' + rutas[i].replace(/\\/g, '\\\\') + '\');return false;">' + lista[i] + '</a></li>';
+    }
+    htmlArchivos += '</ul></div>';
+    if (totalPaginas > 1) {
+      htmlArchivos += '<div style="text-align:center;margin-top:7px;">';
+      if (archivosPaginaActual > 1) {
+        htmlArchivos += '<button onclick="cambiarPaginaArchivos(' + (archivosPaginaActual - 1) + ')" class="boton boton-pequeno" style="margin-right:6px;">&lt; Anterior</button>';
       }
+      htmlArchivos += ' Página ' + archivosPaginaActual + ' de ' + totalPaginas + ' ';
+      if (archivosPaginaActual < totalPaginas) {
+        htmlArchivos += '<button onclick="cambiarPaginaArchivos(' + (archivosPaginaActual + 1) + ')" class="boton boton-pequeno" style="margin-left:6px;">Siguiente &gt;</button>';
+      }
+      htmlArchivos += '</div>';
     }
-    if (archivos.length === 0) return "<i style='color:#285080;'>No hay archivos Word en esta carpeta.</i>";
-    // Ordenar por fecha (más reciente primero)
-    archivos.sort(function(a, b) {
-      return b.fecha - a.fecha;
-    });
-    // Limitar a los N más recientes
-    var html = "<b style='color:#17406a;'>Últimos archivos Word:</b><br>";
-    html += "<table style='width:99%;font-size:0.97em;margin:5px 0 0 0;'><tr><th style='text-align:left;'>Nombre</th><th style='text-align:left;'>Última modificación</th></tr>";
-    var max = Math.min(cuantos, archivos.length);
-    for (var i = 0; i < max; i++) {
-      var f = archivos[i];
-      var d = new Date(f.fecha);
-      var fechaStr = pad2(d.getDate()) + "/" + pad2(d.getMonth()+1) + "/" + d.getFullYear() +
-                     " " + pad2(d.getHours()) + ":" + pad2(d.getMinutes());
-      html += "<tr><td>" + f.nombre + "</td><td>" + fechaStr + "</td></tr>";
-    }
-    html += "</table>";
-    return html;
+  } else {
+    htmlArchivos = '<div style="margin-top:8px;"><i>No hay archivos Word.</i></div>';
+  }
+  document.getElementById('detalle-archivos').innerHTML = htmlArchivos;
+}
+
+function cambiarPaginaArchivos(nueva) {
+  archivosPaginaActual = nueva;
+  renderArchivosPanel();
+}
+
+// Función global para abrir archivo Word desde el panel
+function abrirWordArchivo(ruta) {
+  try {
+    var shell = new ActiveXObject('WScript.Shell');
+    shell.Run('"' + ruta + '"');
   } catch(e) {
-    return "<i style='color:#b00020;'>Error leyendo archivos: " + e.message + "</i>";
+    alert('No se pudo abrir el archivo:\n' + ruta);
   }
 }
-function pad2(n) { return n<10 ? '0'+n : n; }
 // Utilidad
   function abrirRuta(ruta) {
     if (fso.FolderExists(ruta)) {
